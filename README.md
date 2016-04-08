@@ -2,6 +2,9 @@
 
 ### Goal: Predict the likelihood of what the driver is doing in each picture
 
+### Dataset:
+<a href= "https://www.kaggle.com/c/state-farm-distracted-driver-detection/data">State Farm Distracted Driver Detection Data</a>
+
 ##### The 10 classes to predict are:
   * c0: safe driving
   * c1: texting - right
