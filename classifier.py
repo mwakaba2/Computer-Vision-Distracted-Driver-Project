@@ -56,6 +56,7 @@ def getTrainingFeatures(path):
 
 	kp, des = getSIFT(file_path)
 	
+	print kp[0].pt, des[0]
 
 
 if __name__ == '__main__':
