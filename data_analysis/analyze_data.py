@@ -1,4 +1,4 @@
-import os, os.path
+import os
 
 
 def analyze():
