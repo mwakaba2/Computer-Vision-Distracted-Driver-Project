@@ -1,9 +1,13 @@
 import os
 
+import cv2
+import numpy as np
 from pprint import pprint
 
-labeled_imgs = {}
 
+# global variables
+labeled_imgs = {}
+k_means = None
 
 def getLabels(train_path):
 	"""Create dictionary of labeled_imgs
@@ -16,22 +20,48 @@ def getLabels(train_path):
 		IOError: no such directory
 
 	"""
-	for label in os.listdir(TRAIN_PATH):
-		label_path = os.path.join(TRAIN_PATH, label)
+	try:
+		for label in os.listdir(train_path):
+			label_path = os.path.join(train_path, label)
 
-		if os.path.isdir(label_path):
+			if os.path.isdir(label_path):
 
-			for file_name in os.listdir(label_path):
-				file_path = os.path.join(label_path, file_name)
-				
-				if os.path.isfile(file_path) and file_name.endswith('.jpg'):
-					labeled_imgs[file_name] = label
+				for file_name in os.listdir(label_path):
+					file_path = os.path.join(label_path, file_name)
+					
+					if os.path.isfile(file_path) and file_name.endswith('.jpg'):
+						labeled_imgs[file_name] = label
+	except IOError as e:
+		print "I/O error({0}): {1}".format(e.errno, e.strerror)
 	
-	pprint(labeled_imgs)
+	# pprint(labeled_imgs)
+
+def getSIFT(path):
+	img = cv2.imread(path)
+	gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+	sift = cv2.SIFT()
+	key_pts, des = sift.detectAndCompute(gray_img, None)
+
+	return key_pts, des
+
+def getTrainingFeatures(path):
+	getLabels(path)
+	features = []
+	sd = []
+	filename = labeled_imgs.keys()[0]
+	images = []
+	global k_means
+	file_path = os.path.join(path, labeled_imgs[filename], filename)
+
+	kp, des = getSIFT(file_path)
+	
+
 
 if __name__ == '__main__':
 	IMG_DIR = './imgs'
 	TEST_PATH = os.path.join(IMG_DIR, 'test')
 	TRAIN_PATH = os.path.join(IMG_DIR, 'train')
 
-	getLabels(TRAIN_PATH)
+	getTrainingFeatures(TRAIN_PATH)
+	#getLabels(TRAIN_PATH)
