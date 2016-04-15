@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from pprint import pprint
 
+from descriptor import Descriptor
 
 # global variables
 labeled_imgs = {}
@@ -55,8 +56,12 @@ def getTrainingFeatures(path):
 	file_path = os.path.join(path, labeled_imgs[filename], filename)
 
 	kp, des = getSIFT(file_path)
-	
-	print kp[0].pt, des[0]
+	x, y = kp[0].pt
+	descriptor = Descriptor(x, y, des[0])
+
+	print descriptor
+	# pprint(kp[0].pt)
+	# pprint(len(des[0]))
 
 
 if __name__ == '__main__':
