@@ -5,11 +5,13 @@ import csv
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pickle
 import pylab as pl
 from pprint import pprint
 from scipy.cluster.vq import *
 from sklearn import svm
+from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.cross_validation import train_test_split, cross_val_score
 from sklearn.grid_search import GridSearchCV
@@ -202,7 +204,7 @@ def getTrainingFeatures(path):
     getLabels(path)
     features = []
     keypoints = []
-    filenames = labeled_imgs.keys()[:40]
+    filenames = labeled_imgs.keys()
     images = []
     global k_means
     for fname in filenames:
@@ -244,7 +246,7 @@ def getTestingFeatures(path):
     features = []
     lbls = []
     images = []
-    filenames = [f for f in os.listdir(TEST_IMG_PATH) if os.path.isfile(os.path.join(TEST_IMG_PATH,f))][:10]
+    filenames = [f for f in os.listdir(TEST_IMG_PATH) if os.path.isfile(os.path.join(TEST_IMG_PATH,f))]
 
     for filename in filenames:
         file_path = os.path.join(path, filename)
@@ -279,61 +281,54 @@ def outputLabels(lbls, X):
     Y = np.array(X)
     Y = Y.astype(float)
     scale(Y, with_mean = True, with_std = True)
-    preds = model.predict(Y)
+    preds = model.predict_proba(Y)
     writePredictions(lbls, preds)
 
 def writePredictions(labels, preds):
     with open(TEST_OUTPUT, 'a') as fp:
-         writer = csv.writer(fp, delimiter = ' ')
+         writer = csv.writer(fp, delimiter = ',')
+         writer.writerow(['img', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'])
          for label, pred in zip(labels, preds):
-             writer.writerow([label, pred])
+             writer.writerow([label]+[ '%.2f' % elem for elem in pred])
 
 def exhaustiveGridSearch():
     
     # read training file
     lbls1, y, X = readCSV(TRAIN_FEATURES_CSV, True)
-    
+
     X = np.array(X)
     X = X.astype(float)
     y = np.array(y)
-    
+
     # scale features for zero mean and unit variance 
     scale(X, with_mean = True, with_std = True)
-    
+
     # Split the dataset in two parts
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=0)
     # Set the parameters by cross-validation
-    
+
     tuned_parameters = [ # {'kernel': ['rbf'], 'gamma': [2**pw for pw in xrange(-15,3)], 'C': [2**pw for pw in xrange(-5,16)]} ]
                     # {'kernel': ['linear'], 'C': [2**pw for pw in xrange(-5,16)]} ]
                     # {'kernel': ['poly'], 'C':[2**pw for pw in xrange(-5,16)], 'degree':[i for i in xrange(2,7)] }]
-                      {'C':[2**pw for pw in xrange(-5,16)]}]
-                    #  {'max_features': [val for val in xrange(10,110,10)], 'min_samples_split': [val for val in xrange(10,110,10)]} ]
-                     
+                    {'C':[2**pw for pw in xrange(-5,16)]}]
+                    
     scores = ['precision', 'recall']
     for score in scores:
-        print("# Tuning hyper-parameters for %s" % score)
-        print()
-        clf = GridSearchCV(svm.LinearSVC(C=1), tuned_parameters, cv=5, scoring=score)
-        # clf = GridSearchCV(RandomForestClassifier(n_estimators = 200, random_state = 100), tuned_parameters, cv=5, scoring=score)
+        print("# Tuning hyper-parameters for %s\n" % score)
+        clf = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5, scoring=score)
+        #clf = GridSearchCV(RandomForestClassifier(n_estimators = 200, random_state = 100), tuned_parameters, cv=5, scoring=score)
+        #clf = GridSearchCV(AdaBoostClassifier(base_estimator=svm.SVC(C=1), n_estimators = 200, random_state = 100), tuned_parameters, cv=5, scoring=score))
         clf.fit(X_train, y_train)
-        print("Best parameters set found on development set:")
-        print()
+        print("Best parameters set found on development set:\n")
         print(clf.best_estimator_)
-        print()
-        print("Grid scores on development set:")
-        print()
+        print("Grid scores on development set:\n")
         for params, mean_score, scores in clf.grid_scores_:
             print("%0.3f (+/-%0.03f) for %r" % (mean_score, scores.std() / 2, params))
-        print()
-        print("Detailed classification report:")
-        print()
-        print("The model is trained on the full development set.")
-        print("The scores are computed on the full evaluation set.")
-        print()
+        print("Detailed classification report:\n")
+        print("The model is trained on the full development set.\n")
+        print("The scores are computed on the full evaluation set.\n")
         y_true, y_pred = y_test, clf.predict(X_test)
         print(classification_report(y_true, y_pred))
-        print()
 
 # Compute Histogram Intesection kernel
 def hist_intersection(x, y):
@@ -350,7 +345,7 @@ def cross_validate(X, y):
     
     svc = svm.SVC(kernel='linear', C = 0.0625)
     
-    lin_svc = svm.LinearSVC(C = 4.0, dual = False)
+    lin_svc = svm.SVC(C = 4.0, dual = False)
     
     rbf_svc = svm.SVC(kernel='rbf', gamma = 0.0009765625, C = 32.0)
     
@@ -399,7 +394,7 @@ def classify():
     scale(X, with_mean = True, with_std = True)
     scale(Y, with_mean = True, with_std = True)
     
-    lin_svc = svm.LinearSVC(C = 4.0, dual = False)
+    lin_svc = svm.SVC(C = 4.0, dual = False)
     lin_svc.fit(X, y)
     
     bestmodel = lin_svc
@@ -424,26 +419,22 @@ def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues):
 
 if __name__ == '__main__':
 
-    getTrainingFeatures(TRAIN_IMG_PATH)
+    #getTrainingFeatures(TRAIN_IMG_PATH)
     k_means = loadFromFile()
     fileName, labels, X = readCSV(TRAIN_FEATURES_CSV, True)
     X = np.array(X)
     labels = np.array(labels)
     scale(X, with_mean = True, with_std = True)
-    classifier = svm.LinearSVC(C = 4.0, multi_class='crammer_singer')
+    classifier = svm.SVC(C = 4.0, probability=True)
     classifier.fit(X, labels)
     model = classifier
     getTestingFeatures(TEST_IMG_PATH)
-
-    # read training data
-    filenames, y, X = readCSV(TRAIN_FEATURES_CSV, True)
     
     # Split the data randomly into a training set and a test set
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=100)
+    X_train, X_test, y_train, y_test = train_test_split(X, labels, random_state=100)
 
     # Run classifier
-    classifier = svm.LinearSVC(C = 4.0, dual = False)
-    y_pred = classifier.fit(X_train, y_train).predict(X_test)
+    y_pred = classifier.predict(X_test)
     # Compute confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     np.set_printoptions(precision=2)
@@ -462,6 +453,5 @@ if __name__ == '__main__':
 
     plt.show()
 
-    #plotConfusionMatrix()
-    # exhaustiveGridSearch()
+    exhaustiveGridSearch()
     # classify()
