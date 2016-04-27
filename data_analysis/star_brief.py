@@ -22,5 +22,7 @@ kp = star.detect(img,None)
 kp, des = brief.compute(img, kp)
 # draw only keypoints location,not size and orientation
 img2 = cv2.drawKeypoints(img,kp,color=(0,255,0), flags=0)
+print des.shape
+
 plt.imshow(img2)
 plt.show()

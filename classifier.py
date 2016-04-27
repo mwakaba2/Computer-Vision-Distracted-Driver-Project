@@ -10,15 +10,16 @@ import pickle
 import pylab as pl
 from pprint import pprint
 from scipy.cluster.vq import *
-from sklearn import svm
-from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.cross_validation import train_test_split, cross_val_score
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import scale
 from sklearn.metrics.pairwise import chi2_kernel
-
+from sklearn.pipeline import Pipeline
 from descriptor import Descriptor
 from image_descriptor import ImageDescriptors
 
@@ -250,6 +251,7 @@ def getTestingFeatures(path):
 
     for filename in filenames:
         file_path = os.path.join(path, filename)
+        print "filename %s" % file_path
         if os.path.isfile(file_path) and filename.endswith('.jpg'):
             kp, des = getSTAR(file_path)
 
@@ -261,21 +263,20 @@ def getTestingFeatures(path):
 	            
             imgDescriptor = ImageDescriptors(descriptors, filename, 640, 480)
             images.append(imgDescriptor)
-        else:
-            continue
+            print "%d images" % (len(images))
 
     for image in images:
         vlad = getVlad(image)
         features.append(vlad.tolist())
         lbls.append(image.filename)
+        print "features list: %d features" % len(features)
         # since test set is huge, need to classify images in batches of 100
-        if len(features) == 100:
+        if len(features) == 61:
+            print "predicting labels!"
             outputLabels(lbls, features)
             features = []
+            lbls = []
 
-    if len(features) != 0:
-        outputLabels(lbls, features)
-        features = []
 
 def outputLabels(lbls, X):
     Y = np.array(X)
@@ -287,12 +288,11 @@ def outputLabels(lbls, X):
 def writePredictions(labels, preds):
     with open(TEST_OUTPUT, 'a') as fp:
          writer = csv.writer(fp, delimiter = ',')
-         writer.writerow(['img', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'])
          for label, pred in zip(labels, preds):
              writer.writerow([label]+[ '%.2f' % elem for elem in pred])
 
 def exhaustiveGridSearch():
-    
+    n_estimators = 10
     # read training file
     lbls1, y, X = readCSV(TRAIN_FEATURES_CSV, True)
 
@@ -307,15 +307,16 @@ def exhaustiveGridSearch():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=0)
     # Set the parameters by cross-validation
 
-    tuned_parameters = [ # {'kernel': ['rbf'], 'gamma': [2**pw for pw in xrange(-15,3)], 'C': [2**pw for pw in xrange(-5,16)]} ]
-                    # {'kernel': ['linear'], 'C': [2**pw for pw in xrange(-5,16)]} ]
-                    # {'kernel': ['poly'], 'C':[2**pw for pw in xrange(-5,16)], 'degree':[i for i in xrange(2,7)] }]
-                    {'C':[2**pw for pw in xrange(-5,16)]}]
+    tuned_parameters = {
+                            'estimator__n_estimators':[10, 15, 20, 25],
+                            'estimator__n_jobs': [5, 10, 15, 20],
+                            'estimator__max_samples':[1.0/10, 1.0/15, 1.0/20, 1.0/25],
+    }
                     
     scores = ['precision', 'recall']
     for score in scores:
         print("# Tuning hyper-parameters for %s\n" % score)
-        clf = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5, scoring=score)
+        clf = GridSearchCV(OneVsRestClassifier(BaggingClassifier(SVC(C=4.0, probability=True), max_samples=1.0 / n_estimators, n_estimators=n_estimators, n_jobs = 15)), tuned_parameters, cv=5, scoring=score)
         #clf = GridSearchCV(RandomForestClassifier(n_estimators = 200, random_state = 100), tuned_parameters, cv=5, scoring=score)
         #clf = GridSearchCV(AdaBoostClassifier(base_estimator=svm.SVC(C=1), n_estimators = 200, random_state = 100), tuned_parameters, cv=5, scoring=score))
         clf.fit(X_train, y_train)
@@ -420,38 +421,46 @@ def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues):
 if __name__ == '__main__':
 
     #getTrainingFeatures(TRAIN_IMG_PATH)
-    k_means = loadFromFile()
+    # print "Loading k_means..."
+    # k_means = loadFromFile()
+    # print "Finished loading!"
+    # print "Reading CSV"
     fileName, labels, X = readCSV(TRAIN_FEATURES_CSV, True)
+    print "Done reading!"
     X = np.array(X)
     labels = np.array(labels)
     scale(X, with_mean = True, with_std = True)
-    classifier = svm.SVC(C = 4.0, probability=True)
+    n_estimators = 10
+    classifier = OneVsRestClassifier(BaggingClassifier(SVC(C=4.0, probability=True), max_samples=1.0 / n_estimators, n_estimators=n_estimators, n_jobs = 15))
+    print "fitting classifier..."
     classifier.fit(X, labels)
+    print "done fitting!"
     model = classifier
-    getTestingFeatures(TEST_IMG_PATH)
+    #getTestingFeatures(TEST_IMG_PATH)
     
     # Split the data randomly into a training set and a test set
     X_train, X_test, y_train, y_test = train_test_split(X, labels, random_state=100)
+    y_true, y_pred = y_test, classifier.predict(X_test)
+    print(classification_report(y_true, y_pred))
+    # # Run classifier
+    # y_pred = classifier.predict(X_test)
+    # # Compute confusion matrix
+    # cm = confusion_matrix(y_test, y_pred)
+    # np.set_printoptions(precision=2)
+    # print('Confusion matrix, without normalization')
+    # print(cm)
+    # plt.figure()
+    # plot_confusion_matrix(cm)
 
-    # Run classifier
-    y_pred = classifier.predict(X_test)
-    # Compute confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    np.set_printoptions(precision=2)
-    print('Confusion matrix, without normalization')
-    print(cm)
-    plt.figure()
-    plot_confusion_matrix(cm)
+    # # Normalize the confusion matrix by row (i.e by the number of samples
+    # # in each class)
+    # cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    # print('Normalized confusion matrix')
+    # print(cm_normalized)
+    # plt.figure()
+    # plot_confusion_matrix(cm_normalized, title='Normalized confusion matrix')
 
-    # Normalize the confusion matrix by row (i.e by the number of samples
-    # in each class)
-    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    print('Normalized confusion matrix')
-    print(cm_normalized)
-    plt.figure()
-    plot_confusion_matrix(cm_normalized, title='Normalized confusion matrix')
+    # plt.show()
 
-    plt.show()
-
-    exhaustiveGridSearch()
+    #exhaustiveGridSearch()
     # classify()
