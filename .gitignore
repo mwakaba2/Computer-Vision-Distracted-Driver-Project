@@ -63,6 +63,7 @@ target/
 
 
 # Data
+*.jugdata
 *.csv
 imgs/
 final.jugdata/
