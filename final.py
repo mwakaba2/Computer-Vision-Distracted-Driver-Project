@@ -148,6 +148,7 @@ def get_features(train, images):
 
     return haralicks, chists, lbps, labels
 
+
 train_images = get_images(True)
 test_images = get_images(False)
 
@@ -162,40 +163,11 @@ test_haralicks, test_chists, test_lbps, test_labels = get_features(False, test_i
 test_combined = hstack([test_chists, test_haralicks])
 test_combined_all = hstack([test_chists, test_haralicks, test_lbps])
 
-# for fname in train_images:
-#     haralicks.append(compute_texture(fname))
-#     chists.append(compute_chist(fname))
-#     lbps.append(compute_lbp(fname))
-#     label = fname.split('/')[2]
-#     labels.append(label)
-
-# haralicks = to_array(haralicks)
-# chists = to_array(chists)
-# lbps = to_array(lbps)
-# labels = to_array(labels)
-
-
-# test_haralicks = []
-# test_chists = []
-# test_lbps = []
-
-# for fname in test_images:
-#     test_haralicks.append(compute_texture(fname))
-#     test_chists.append(compute_chist(fname))
-#     test_lbps.append(compute_lbp(fname))
-
-# test_haralicks = to_array(test_haralicks)
-# test_chists = to_array(test_chists)
-# test_lbps = to_array(test_lbps)
-# test_combined = hstack([test_chists, test_haralicks])
-# test_combined_all = hstack([test_chists, test_haralicks, test_lbps])
-
 scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
 scores_chist = accuracy('chists', chists, labels, True, test_chists, test_images)
 scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
 scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
 scores_combined_all = accuracy('combined_all', combined_all, labels, True, test_combined_all, test_images)
-
 
 print_results([
         ('base', scores_base),
