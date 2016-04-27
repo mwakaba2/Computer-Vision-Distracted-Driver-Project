@@ -65,6 +65,5 @@ target/
 # Data
 *.csv
 imgs/
-k_means.obj
 final.jugdata/
 results.image.txt
