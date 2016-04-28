@@ -1,15 +1,14 @@
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import os
+
 import multiprocessing
-
 import mahotas as mh
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import cross_val_score
-
+from mahotas.features import lbp
+import numpy as np 
+import pandas as pd
 from scipy.misc import imread, imresize
-# Any results you write to the current directory are saved as output.
-print('Loaded everything')
+from sklearn.cross_validation import cross_val_score
+from sklearn.ensemble import RandomForestClassifier
+
 
 labels = 'c0,c1,c2,c3,c4,c5,c6,c7,c8,c9'.split(',')
 def get_train():
@@ -77,12 +76,16 @@ def chist(im):
     hist = hist.astype(float)
     return np.log1p(hist)
 
+def compute_lbp(im):
+    im = mh.colors.rgb2grey(im)
+    return lbp(im, radius=8, points=6)
+
 def getimage(im):
-    #return imresize(imread(x, 'L'), (100, 100)).flatten()
+    # calculating each img's color histogram and co-occurrence matrix
     im = mh.imread(im)
     img = mh.colors.rgb2grey(im).astype(np.uint8)
     return np.concatenate([mh.features.haralick(img).ravel(),
-                                chist(im)])
+                                chist(im), compute_lbp(im)])
 
 print('Starting to load training data')
 train['images'] = apply_by_multiprocessing(train.paths, getimage) 
@@ -126,6 +129,7 @@ print("Running predictions")
 results = []
 for index, clf in enumerate(classifiers):
     predictions = clf.predict_proba(X)[:,1]
+    print(predictions.shape)
     results.append(predictions)
     print('c'+str(index), 'Done with prediction')
 

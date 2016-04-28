@@ -2,6 +2,7 @@ from glob import glob
 from jug import TaskGenerator
 import pandas as pd
 import mahotas as mh
+from mahotas.features import lbp
 from mahotas.features import surf
 import numpy as np
 from sklearn import cross_validation
@@ -9,7 +10,9 @@ from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 
+classes = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9']
 
 def texture(im):
     '''Compute features for an image
@@ -65,7 +68,6 @@ def compute_chist(fname):
 
 @TaskGenerator
 def compute_lbp(fname):
-    from mahotas.features import lbp
     imc = mh.imread(fname)
     im = mh.colors.rgb2grey(imc)
     return lbp(im, radius=8, points=6)
@@ -74,21 +76,43 @@ def compute_lbp(fname):
 def accuracy(featureType, features, labels, predict=False, test_features=[], test_images=[]):
     # We use logistic regression because it is very fast.
     # Feel free to experiment with other classifiers
-    clf = Pipeline([
-                    ('preproc', StandardScaler()),
-                    ('classifier', LogisticRegression(solver="lbfgs", multi_class="multinomial"))
-                    ])
-    clf.fit(features, labels)
-
-    if predict:
-        print("Predicting test images")
-        preds =  clf.predict_proba(test_features)
-        create_submission(featureType, preds, test_images)
-
     cv = cross_validation.LeaveOneOut(len(features))
-    scores = cross_validation.cross_val_score(
-        clf, features, labels, cv=cv)
-    return scores.mean()
+    classifier = [RandomForestClassifier(n_jobs=-1,
+                                      n_estimators=100
+                                      ) for i in classes]
+    # classifier = Pipeline([
+    #                 ('preproc', StandardScaler()),
+    #                 ('classifier', LogisticRegression(solver="lbfgs", multi_class="multinomial"))
+    #                 ])
+    
+    if type(classifier) is list:
+        scores = []
+        for i, clf in zip(classes, classifiers):
+            clf.fit(features, labels)
+            score = cross_validation.cross_val_score(
+                clf, features, labels, cv=cv)
+            scores.append(score)
+            print('Trained', i)
+        print('Done training')
+        
+        if predict:
+            print("Predicting test images")
+            results = []
+            for index, clf in enumerate(classifier):
+                predictions = clf.predict_proba(X)[:,1]
+                results.append(predictions)
+            create_submission(featureType, results, test_images)
+            
+        return numpy.mean(scores)
+    else:
+        classifier.fit(features, labels)
+        cv = cross_validation.LeaveOneOut(len(features))
+        scores = cross_validation.cross_val_score(
+            clf, features, labels, cv=cv)
+        if predict:
+            preds =  clf.predict_proba(test_features)
+            create_submission(featureType, preds, test_images)
+        return scores.mean()
 
 @TaskGenerator
 def print_results(scores):
