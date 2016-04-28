@@ -125,11 +125,11 @@ def get_images(train):
     # Use glob to get all the train_images
     if train:
         for i in classes:
-            images += glob('{}/{}/{}/*.jpg'.format('imgs', 'train', i))[:20]
+            images += glob('{}/{}/{}/*.jpg'.format('imgs', 'train', i))
 
     # Use glob to get all the test_images
     else:
-        images += glob('{}/{}/*.jpg'.format('imgs', 'test'))[:20]
+        images += glob('{}/{}/*.jpg'.format('imgs', 'test'))
 
     images.sort()
     return images
@@ -153,7 +153,7 @@ def get_features(train, images):
         # To use dense sampling, you can try the following line:
         alldescriptors.append(surf.dense(im, spacing=16))
         #alldescriptors.append(surf.surf(im, descriptor_only=True))
-    k = 5 #32 #256
+    k = 256
     km = KMeans(k)
 
     concatenated = np.concatenate(alldescriptors)
