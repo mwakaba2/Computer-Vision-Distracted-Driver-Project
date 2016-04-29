@@ -52,17 +52,21 @@ def get_random_examples():
 	columns = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9']
 	subjects = df.drop_duplicates('subject')['subject'].tolist()
 	random_subject = random.choice(subjects)
+	random_subject = 'p012'
 	print("Analyzing subject %s" % random_subject)
 	subject_data = df.loc[df['subject'] == random_subject]
 
 	examples = []
+	examples2 = []
 
 	for class_type in columns:
 		images_data = subject_data.loc[df['classname'] == class_type]['img'].tolist()
 		random_image = random.choice(images_data)
+		random_image2 = random.choice(images_data)
 		examples.append(class_type + '/' + random_image)
+		examples2.append(class_type + '/' + random_image2)
 
-	return examples
+	return examples, examples2
 		
 if __name__ == '__main__':
 	#analyze_img_data()
