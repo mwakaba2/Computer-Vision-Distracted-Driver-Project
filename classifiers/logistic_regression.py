@@ -191,6 +191,7 @@ def get_kmeans(k, train, descriptors):
         return km
 
 def get_obj(train, objectContent):
+    # TO DO
     pass
 
 
