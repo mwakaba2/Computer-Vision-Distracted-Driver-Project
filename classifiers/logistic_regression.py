@@ -168,9 +168,9 @@ def get_images(train):
 def get_kmeans(k, train, descriptors):
     iterations = 30
     if train:
-        filename = 'train_k_means.obj'
+        filename = 'objects/train_k_means.obj'
     else:
-        filename = 'test_k_means.obj'
+        filename = 'objects/test_k_means.obj'
 
     if os.path.exists(filename):
         print("Loading existing K-means")
@@ -190,12 +190,25 @@ def get_kmeans(k, train, descriptors):
             pickle.dump(km, fp)
         return km
 
+def get_obj(train, objectContent):
+    pass
+
+
 def get_features(train, images):
     haralicks = []
     chists = []
     lbps = []
     labels = []
     alldescriptors = []
+
+    object_dir_file_num = len([name for name in os.listdir('.') if os.path.isfile(name)])
+
+    if object_dir_file_num == 7:
+        haralicks = get_obj(train, 'haralicks')
+        chist = get_obj(train, 'chist')
+        lbps = get_obj(train, 'lbps')
+        labels = get_obj(train, 'labels')
+        alldescriptors = get_obj(train, 'alldescriptors')
     for fname in images:
         haralicks.append(compute_texture(fname))
         chists.append(compute_chist(fname))
