@@ -1,16 +1,23 @@
+import os.path
+import time
+import warnings
+
 from glob import glob
 from jug import TaskGenerator
 import pandas as pd
+import pickle
 import mahotas as mh
 from mahotas.features import lbp
 from mahotas.features import surf
 import numpy as np
 from sklearn import cross_validation
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
+
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 classes = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9']
 
@@ -77,13 +84,13 @@ def accuracy(featureType, features, labels, predict=False, test_features=[], tes
     # We use logistic regression because it is very fast.
     # Feel free to experiment with other classifiers
     cv = cross_validation.LeaveOneOut(len(features))
-    classifier = [RandomForestClassifier(n_jobs=-1,
-                                      n_estimators=100
-                                      ) for i in classes]
-    # classifier = Pipeline([
-    #                 ('preproc', StandardScaler()),
-    #                 ('classifier', LogisticRegression(solver="lbfgs", multi_class="multinomial"))
-    #                 ])
+    # classifier = [RandomForestClassifier(n_jobs=-1,
+    #                                   n_estimators=100
+    #                                   ) for i in classes]
+    classifier = Pipeline([
+                    ('preproc', StandardScaler()),
+                    ('classifier', LogisticRegression(solver="lbfgs", multi_class="multinomial"))
+                    ])
     
     if type(classifier) is list:
         scores = []
@@ -158,6 +165,31 @@ def get_images(train):
     images.sort()
     return images
 
+def get_kmeans(k, train, descriptors):
+    iterations = 30
+    if train:
+        filename = 'train_k_means.obj'
+    else:
+        filename = 'test_k_means.obj'
+
+    if os.path.exists(filename):
+        print("Loading existing K-means")
+        with open(filename, 'rb') as fp:
+            return pickle.load(fp)
+    else:    
+        #km = KMeans(k)
+        start = time.clock()
+        km = MiniBatchKMeans(n_clusters=k, batch_size=20000, n_init=iterations)
+        print('Clustering with K-means...')
+        km.fit(descriptors)
+        end = time.clock()
+        print "Time for running %d iterations of K means for %d samples = %f seconds" % (iterations, len(descriptors), end - start)
+        # save k_means for later
+        print("Saving K-means")
+        with open(os.path.join(filename), 'wb') as fp:
+            pickle.dump(km, fp)
+        return km
+
 def get_features(train, images):
     haralicks = []
     chists = []
@@ -177,15 +209,14 @@ def get_features(train, images):
         # To use dense sampling, you can try the following line:
         alldescriptors.append(surf.dense(im, spacing=16))
         #alldescriptors.append(surf.surf(im, descriptor_only=True))
-    k = 256
-    km = KMeans(k)
-
+    
     concatenated = np.concatenate(alldescriptors)
     print('Number of descriptors: {}'.format(
             len(concatenated)))
     concatenated = concatenated[::64]
-    print('Clustering with K-means...')
-    km.fit(concatenated)
+    
+    k = 256
+    km = get_kmeans(k, train, concatenated)
     surf_descriptors = []
     for d in alldescriptors:
         c = km.predict(d)
@@ -214,18 +245,18 @@ test_haralicks, test_chists, test_lbps, test_labels, test_surf = get_features(Fa
 test_combined = hstack([test_chists, test_haralicks])
 test_combined_all = hstack([test_chists, test_haralicks, test_lbps, test_surf])
 
-scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
-scores_chist = accuracy('chists', chists, labels, True, test_chists, test_images)
-scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
-scores_surf = accuracy('surf', surf_descriptors, labels, True, test_surf, test_images)
-scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
-scores_combined_all = accuracy('combined_all', combined_all, labels, True, test_combined_all, test_images)
+# scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
+# scores_chist = accuracy('chists', chists, labels, True, test_chists, test_images)
+# scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
+# scores_surf = accuracy('surf', surf_descriptors, labels, True, test_surf, test_images)
+# scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
+# scores_combined_all = accuracy('combined_all', combined_all, labels, True, test_combined_all, test_images)
 
-print_results([
-        ('base', scores_base),
-        ('chists', scores_chist),
-        ('lbps', scores_lbps),
-        ('surf', scores_surf),
-        ('combined' , scores_combined),
-        ('combined_all' , scores_combined_all),
-        ])
+# print_results([
+#         ('base', scores_base),
+#         ('chists', scores_chist),
+#         ('lbps', scores_lbps),
+#         ('surf', scores_surf),
+#         ('combined' , scores_combined),
+#         ('combined_all' , scores_combined_all),
+#         ])

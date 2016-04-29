@@ -64,7 +64,7 @@ target/
 
 # Data
 *.jugdata
+*.obj
 *.csv
 imgs/
-final.jugdata/
 results.image.txt
