@@ -1,4 +1,5 @@
 import os
+import random
 
 import pandas as pd
 
@@ -45,7 +46,25 @@ def analyze_content():
 
 	print(new_df)
 	print(new_df.describe().loc[['mean', 'std', 'min', 'max']])
+
+def get_random_examples():
+	df = pd.read_csv('imgs/driver_imgs_list.csv')
+	columns = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9']
+	subjects = df.drop_duplicates('subject')['subject'].tolist()
+	random_subject = random.choice(subjects)
+	print("Analyzing subject %s" % random_subject)
+	subject_data = df.loc[df['subject'] == random_subject]
+
+	examples = []
+
+	for class_type in columns:
+		images_data = subject_data.loc[df['classname'] == class_type]['img'].tolist()
+		random_image = random.choice(images_data)
+		examples.append(class_type + '/' + random_image)
+
+	return examples
 		
 if __name__ == '__main__':
 	#analyze_img_data()
-	analyze_content()
+	# analyze_content()
+	print(get_random_examples())

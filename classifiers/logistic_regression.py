@@ -123,7 +123,7 @@ def accuracy(featureType, features, labels, predict=False, test_features=[], tes
 
 @TaskGenerator
 def print_results(scores):
-    with open('submissions/results.image.txt', 'w') as output:
+    with open('submissions/results.image.txt', 'a') as output:
         for k,v in scores:
             output.write('Accuracy with Logistic Regression [{0}]: {1:.1%}\n'.format(
                 k, v.mean()))
@@ -238,20 +238,28 @@ to_array = TaskGenerator(np.array)
 hstack = TaskGenerator(np.hstack)
 
 haralicks, chists, lbps, labels, surf_descriptors = get_features(True, train_images)
-combined = hstack([chists, haralicks])
-combined_all = hstack([chists, haralicks, lbps, surf_descriptors])
+# combined = hstack([chists, haralicks])
+# combined_all = hstack([chists, haralicks, lbps, surf_descriptors])
 
 test_haralicks, test_chists, test_lbps, test_labels, test_surf = get_features(False, test_images)
-test_combined = hstack([test_chists, test_haralicks])
-test_combined_all = hstack([test_chists, test_haralicks, test_lbps, test_surf])
+# test_combined = hstack([test_chists, test_haralicks])
+# test_combined_all = hstack([test_chists, test_haralicks, test_lbps, test_surf])
 
-# scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
+scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
 # scores_chist = accuracy('chists', chists, labels, True, test_chists, test_images)
 # scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
 # scores_surf = accuracy('surf', surf_descriptors, labels, True, test_surf, test_images)
 # scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
 # scores_combined_all = accuracy('combined_all', combined_all, labels, True, test_combined_all, test_images)
 
+print_results([
+         ('base', scores_base)
+        # ('chists', scores_chist),
+        # ('lbps', scores_lbps),
+        # ('surf', scores_surf),
+        # ('combined' , scores_combined),
+        # ('combined_all' , scores_combined_all),
+        ])
 # print_results([
 #         ('base', scores_base),
 #         ('chists', scores_chist),
