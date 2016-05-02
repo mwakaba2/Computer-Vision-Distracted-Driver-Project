@@ -14,7 +14,19 @@ imgs2 = ['c0/img_98046.jpg', 'c1/img_18849.jpg', 'c2/img_85485.jpg',
 		'c6/img_55834.jpg', 'c7/img_101869.jpg', 'c8/img_75770.jpg', 
 		'c9/img_20688.jpg']
 
-for img, img2 in zip(imgs1, imgs2):
+labels = [ 'safe driving', 
+			'texting - right', 
+			'talking on the phone - right', 
+			'texting - left', 
+			'talking on the phone - left ',
+			'operating the radio',
+			'drinking',
+			'reaching behind', 
+			'hair and makeup',
+			'talking to passenger'
+			]
+
+for img, img2, label in zip(imgs1, imgs2, labels):
 	img1_path = os.path.join(IMGS_DIR, img)
 	img2_path = os.path.join(IMGS_DIR, img2)
 
@@ -71,5 +83,5 @@ for img, img2 in zip(imgs1, imgs2):
 	    cv2.line(view, (int(k1[m.queryIdx].pt[0]), int(k1[m.queryIdx].pt[1])) , (int(k2[m.trainIdx].pt[0] + w1), int(k2[m.trainIdx].pt[1])), color)
 
 
-	cv2.imshow("view", view)
+	cv2.imshow(label, view)
 	cv2.waitKey()

@@ -50,30 +50,6 @@ def compute_texture(im):
     return texture(mh.colors.rgb2grey(imc))
 
 @TaskGenerator
-def compute_chist(fname):
-    '''Compute color histogram of input image
-    Parameters
-    ----------
-    im : ndarray
-        should be an RGB image
-    Returns
-    -------
-    c : ndarray
-        1-D array of histogram values
-    '''
-    im = mh.imread(fname)
-    # Downsample pixel values:
-    im = im // 64
-
-    # Separate RGB channels:
-    r,g,b = im.transpose((2,0,1))
-
-    pixels = 1 * r + 4 * g + 16 * b
-    hist = np.bincount(pixels.ravel(), minlength=64)
-    hist = hist.astype(float)
-    return np.log1p(hist)
-
-@TaskGenerator
 def compute_lbp(fname):
     imc = mh.imread(fname)
     im = mh.colors.rgb2grey(imc)
@@ -197,7 +173,6 @@ def get_obj(train, objectContent):
 
 def get_features(train, images):
     haralicks = []
-    chists = []
     lbps = []
     labels = []
     alldescriptors = []
@@ -206,13 +181,11 @@ def get_features(train, images):
 
     if object_dir_file_num == 7:
         haralicks = get_obj(train, 'haralicks')
-        chist = get_obj(train, 'chist')
         lbps = get_obj(train, 'lbps')
         labels = get_obj(train, 'labels')
         alldescriptors = get_obj(train, 'alldescriptors')
     for fname in images:
         haralicks.append(compute_texture(fname))
-        chists.append(compute_chist(fname))
         lbps.append(compute_lbp(fname))
         if train:
             label = fname.split('/')[2]
@@ -238,11 +211,10 @@ def get_features(train, images):
     
     surf_descriptors = to_array(surf_descriptors, dtype=float)
     haralicks = to_array(haralicks)
-    chists = to_array(chists)
     lbps = to_array(lbps)
     labels = to_array(labels)
 
-    return haralicks, chists, lbps, labels, surf_descriptors
+    return haralicks, lbps, labels, surf_descriptors
 
 
 train_images = get_images(True)
@@ -251,16 +223,15 @@ test_images = get_images(False)
 to_array = TaskGenerator(np.array)
 hstack = TaskGenerator(np.hstack)
 
-haralicks, chists, lbps, labels, surf_descriptors = get_features(True, train_images)
-# combined = hstack([chists, haralicks])
-# combined_all = hstack([chists, haralicks, lbps, surf_descriptors])
+haralicks, lbps, labels, surf_descriptors = get_features(True, train_images)
+# combined = hstack([lbps, haralicks])
+# combined_all = hstack([haralicks, lbps, surf_descriptors])
 
-test_haralicks, test_chists, test_lbps, test_labels, test_surf = get_features(False, test_images)
-# test_combined = hstack([test_chists, test_haralicks])
-# test_combined_all = hstack([test_chists, test_haralicks, test_lbps, test_surf])
+test_haralicks, test_lbps, test_labels, test_surf = get_features(False, test_images)
+# test_combined = hstack([test_lbps, test_haralicks])
+# test_combined_all = hstack([test_haralicks, test_lbps, test_surf])
 
 scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
-# scores_chist = accuracy('chists', chists, labels, True, test_chists, test_images)
 # scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
 # scores_surf = accuracy('surf', surf_descriptors, labels, True, test_surf, test_images)
 # scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
@@ -268,17 +239,8 @@ scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_ima
 
 print_results([
          ('base', scores_base)
-        # ('chists', scores_chist),
         # ('lbps', scores_lbps),
         # ('surf', scores_surf),
         # ('combined' , scores_combined),
         # ('combined_all' , scores_combined_all),
         ])
-# print_results([
-#         ('base', scores_base),
-#         ('chists', scores_chist),
-#         ('lbps', scores_lbps),
-#         ('surf', scores_surf),
-#         ('combined' , scores_combined),
-#         ('combined_all' , scores_combined_all),
-#         ])

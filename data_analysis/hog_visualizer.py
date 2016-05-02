@@ -37,6 +37,7 @@ for i, image in enumerate(images):
 	# fd: 1d flattened array
 	fd, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
 	                    cells_per_block=(1, 1), visualise=True)
+	print("Feature vector length: %d" % len(fd))
 
 	# fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), sharex=True, sharey=True)
 
@@ -51,5 +52,5 @@ for i, image in enumerate(images):
 	ax[i][1].set_title('%s hog' % classes[i])
 	ax[i][1].imshow(hog_image_rescaled, aspect='auto', cmap=plt.cm.gray)
 
-fig.subplots_adjust(wspace=0.1, hspace=0.3)
-plt.savefig('data_analysis/output/hog_images.png', bbox_inches='tight')
+# fig.subplots_adjust(wspace=0.1, hspace=0.3)
+# plt.savefig('data_analysis/output/hog_images.png', bbox_inches='tight')
