@@ -143,15 +143,11 @@ def get_images(train):
 
 def get_kmeans(k, train, descriptors):
     iterations = 30
-    if train:
-        filename = 'objects/train_k_means.obj'
-    else:
-        filename = 'objects/test_k_means.obj'
 
-    if os.path.exists(filename):
-        print("Loading existing K-means")
-        with open(filename, 'rb') as fp:
-            return pickle.load(fp)
+    km = get_obj(train, 'k_means')
+
+    if km == None:
+        return km
     else:    
         #km = KMeans(k)
         start = time.clock()
@@ -162,14 +158,31 @@ def get_kmeans(k, train, descriptors):
         print "Time for running %d iterations of K means for %d samples = %f seconds" % (iterations, len(descriptors), end - start)
         # save k_means for later
         print("Saving K-means")
-        with open(os.path.join(filename), 'wb') as fp:
+        with open(filename, 'wb') as fp:
             pickle.dump(km, fp)
         return km
 
 def get_obj(train, objectContent):
-    # TO DO
-    pass
+    if train:
+        filename = 'objects/train_{}.obj'.format(objectContent)
+    else: 
+        filename = 'objects/test_{}.obj'.format(objectContent)
 
+    if os.path.exists(filename):
+        with open(filename, 'rb') as fp:
+            return pickle.load(fp)
+    else: 
+        return None
+        
+def save_obj(train, objectContent, obj):
+    if train:
+        filename = 'objects/train_{}.obj'.format(objectContent)
+    else: 
+        filename = 'objects/test_{}.obj'.format(objectContent)
+
+    with open(filename, 'wb') as fp:
+        pickle.dump(obj, fp)
+        print("Saved %s" % filename)
 
 def get_features(train, images):
     haralicks = []
@@ -177,42 +190,48 @@ def get_features(train, images):
     labels = []
     alldescriptors = []
 
-    object_dir_file_num = len([name for name in os.listdir('.') if os.path.isfile(name)])
+    object_dir_file_num = len([name for name in os.listdir('objects/') if os.path.isfile(name)])
 
-    if object_dir_file_num == 7:
+    if object_dir_file_num == 6:
         haralicks = get_obj(train, 'haralicks')
         lbps = get_obj(train, 'lbps')
         labels = get_obj(train, 'labels')
-        alldescriptors = get_obj(train, 'alldescriptors')
-    for fname in images:
-        haralicks.append(compute_texture(fname))
-        lbps.append(compute_lbp(fname))
-        if train:
-            label = fname.split('/')[2]
-            labels.append(label)
+        surfdescriptors = get_obj(train, 'surfdescriptors')
+    else:
+        for fname in images:
+            haralicks.append(compute_texture(fname))
+            lbps.append(compute_lbp(fname))
+            if train:
+                label = fname.split('/')[2]
+                labels.append(label)
+            
+            im = mh.imresize(mh.imread(fname, as_grey=True), (300,200))
+            im = im.astype(np.uint8)
+            # To use dense sampling, you can try the following line:
+            alldescriptors.append(surf.dense(im, spacing=16))
+            #alldescriptors.append(surf.surf(im, descriptor_only=True))
+    
+        concatenated = np.concatenate(alldescriptors)
+        print('Number of descriptors: {}'.format(
+                len(concatenated)))
+        concatenated = concatenated[::64]
         
-        im = mh.imresize(mh.imread(fname, as_grey=True), (300,200))
-        im = im.astype(np.uint8)
-        # To use dense sampling, you can try the following line:
-        alldescriptors.append(surf.dense(im, spacing=16))
-        #alldescriptors.append(surf.surf(im, descriptor_only=True))
-    
-    concatenated = np.concatenate(alldescriptors)
-    print('Number of descriptors: {}'.format(
-            len(concatenated)))
-    concatenated = concatenated[::64]
-    
-    k = 256
-    km = get_kmeans(k, train, concatenated)
-    surf_descriptors = []
-    for d in alldescriptors:
-        c = km.predict(d)
-        surf_descriptors.append(np.bincount(c, minlength=k))
-    
-    surf_descriptors = to_array(surf_descriptors, dtype=float)
-    haralicks = to_array(haralicks)
-    lbps = to_array(lbps)
-    labels = to_array(labels)
+        k = 256
+        km = get_kmeans(k, train, concatenated)
+        surf_descriptors = []
+        for d in alldescriptors:
+            c = km.predict(d)
+            surf_descriptors.append(np.bincount(c, minlength=k))
+        
+        surf_descriptors = to_array(surf_descriptors, dtype=float)
+        haralicks = to_array(haralicks)
+        lbps = to_array(lbps)
+        labels = to_array(labels)
+
+        save_obj(train, 'surfdescriptors', surf_descriptors)
+        save_obj(train, 'haralicks', haralicks)
+        save_obj(train, 'lbps', lbps)
+        save_obj(train, 'labels', labels)
 
     return haralicks, lbps, labels, surf_descriptors
 
