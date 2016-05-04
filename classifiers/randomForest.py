@@ -10,7 +10,7 @@ from sklearn.cross_validation import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 
 
-labels = 'c0,c1,c2,c3,c4,c5,c6,c7,c8,c9'.split(',')
+labels = ['c0','c1','c2','c3','c4','c5','c6','c7','c8','c9']
 def get_train():
     "Get the training data into a DataFrame"
     labels = [i for i in os.listdir(os.path.join('imgs', 'train')) if 'c' in i]
@@ -31,7 +31,7 @@ def get_train():
     df.drop('target', 1, inplace=True)
     return df
     
-train = get_train().sample(1000)
+train = get_train()
 
 # from https://gist.github.com/yong27/7869662
 def _apply_df(args):
@@ -47,45 +47,15 @@ def apply_by_multiprocessing(df, func, **kwargs):
     pool.close()
     return pd.concat(list(result))
 
-def chist(im):
-    '''Compute color histogram of input image
-    Parameters
-    ----------
-    im : ndarray
-        should be an RGB image
-    Returns
-    -------
-    c : ndarray
-        1-D array of histogram values
-    '''
-
-    # Downsample pixel values:
-    im = im // 64
-
-    # We can also implement the following by using np.histogramdd
-    # im = im.reshape((-1,3))
-    # bins = [np.arange(5), np.arange(5), np.arange(5)]
-    # hist = np.histogramdd(im, bins=bins)[0]
-    # hist = hist.ravel()
-
-    # Separate RGB channels:
-    r,g,b = im.transpose((2,0,1))
-
-    pixels = 1 * r + 4 * g + 16 * b
-    hist = np.bincount(pixels.ravel(), minlength=64)
-    hist = hist.astype(float)
-    return np.log1p(hist)
-
 def compute_lbp(im):
     im = mh.colors.rgb2grey(im)
     return lbp(im, radius=8, points=6)
 
 def getimage(im):
-    # calculating each img's color histogram and co-occurrence matrix
     im = mh.imread(im)
     img = mh.colors.rgb2grey(im).astype(np.uint8)
     return np.concatenate([mh.features.haralick(img).ravel(),
-                                chist(im), compute_lbp(im)])
+                                compute_lbp(im)])
 
 print('Starting to load training data')
 train['images'] = apply_by_multiprocessing(train.paths, getimage) 
@@ -99,11 +69,10 @@ classifiers = [RandomForestClassifier(n_jobs=-1,
 targets = [train[i] for i in labels]
 
 for i, clf, Y in zip(labels, classifiers, targets):
-    # print(cross_val_score(clf, X, Y, scoring='log_loss'))
     clf.fit(X, Y)
-    score_SURF_global = cross_val_score(
+    score = cross_val_score(
     clf, X, Y, cv=10).mean()
-    print score_SURF_global
+    print score
     print('Trained', i)
 print('Done training')
 
@@ -116,12 +85,12 @@ def get_test():
     df = pd.DataFrame({'paths': x})
     return df
 
-# Cleanup a little
+# Cleanup
 del(train)
 del(X)
 del(targets)
 print('Loading images')
-test = get_test().sample(100)
+test = get_test()
 test['images'] = apply_by_multiprocessing(test.paths, getimage)
 X = np.array([i for i in test.images])
 print('Done loading test data.')
@@ -133,7 +102,6 @@ for index, clf in enumerate(classifiers):
     results.append(predictions)
     print('c'+str(index), 'Done with prediction')
 
-print score_SURF_global
 print('Creating submission')
 c0, c1, c2, c3, c4, c5, c6, c7, c8, c9 = results
 sub = pd.DataFrame({'img': test.paths.apply(lambda x:x.split('/')[-1]),

@@ -34,7 +34,6 @@ def texture(im):
     im = im.astype(np.uint8)
     return mh.features.haralick(im).ravel()
 
-@TaskGenerator
 def compute_texture(im):
     '''Compute features for an image
     Parameters
@@ -49,7 +48,6 @@ def compute_texture(im):
     imc = mh.imread(im)
     return texture(mh.colors.rgb2grey(imc))
 
-@TaskGenerator
 def compute_lbp(fname):
     imc = mh.imread(fname)
     im = mh.colors.rgb2grey(imc)
@@ -59,7 +57,9 @@ def compute_lbp(fname):
 def accuracy(featureType, features, labels, predict=False, test_features=[], test_images=[]):
     # We use logistic regression because it is very fast.
     # Feel free to experiment with other classifiers
-    cv = cross_validation.LeaveOneOut(len(features))
+    # cv = cross_validation.LeaveOneOut(len(features))
+    cv = cross_validation.KFold(n=len(features), n_folds=5, shuffle=False,
+                               random_state=None)
     # classifier = [RandomForestClassifier(n_jobs=-1,
     #                                   n_estimators=100
     #                                   ) for i in classes]
@@ -91,9 +91,9 @@ def accuracy(featureType, features, labels, predict=False, test_features=[], tes
         classifier.fit(features, labels)
         cv = cross_validation.LeaveOneOut(len(features))
         scores = cross_validation.cross_val_score(
-            clf, features, labels, cv=cv)
+            classifier, features, labels, cv=cv)
         if predict:
-            preds =  clf.predict_proba(test_features)
+            preds =  classifier.predict_proba(test_features)
             create_submission(featureType, preds, test_images)
         return scores.mean()
 
@@ -146,7 +146,7 @@ def get_kmeans(k, train, descriptors):
 
     km = get_obj(train, 'k_means')
 
-    if km == None:
+    if km != None:
         return km
     else:    
         #km = KMeans(k)
@@ -158,8 +158,7 @@ def get_kmeans(k, train, descriptors):
         print "Time for running %d iterations of K means for %d samples = %f seconds" % (iterations, len(descriptors), end - start)
         # save k_means for later
         print("Saving K-means")
-        with open(filename, 'wb') as fp:
-            pickle.dump(km, fp)
+        save_obj(train, 'k_means', km)
         return km
 
 def get_obj(train, objectContent):
@@ -169,6 +168,7 @@ def get_obj(train, objectContent):
         filename = 'objects/test_{}.obj'.format(objectContent)
 
     if os.path.exists(filename):
+        print("Getting object %s" % filename)
         with open(filename, 'rb') as fp:
             return pickle.load(fp)
     else: 
@@ -190,17 +190,19 @@ def get_features(train, images):
     labels = []
     alldescriptors = []
 
-    object_dir_file_num = len([name for name in os.listdir('objects/') if os.path.isfile(name)])
+    object_dir_file_num = len([name for name in os.listdir('objects/') if name.endswith('.obj')])
 
-    if object_dir_file_num == 6:
+    if object_dir_file_num == 10:
         haralicks = get_obj(train, 'haralicks')
         lbps = get_obj(train, 'lbps')
         labels = get_obj(train, 'labels')
-        surfdescriptors = get_obj(train, 'surfdescriptors')
+        surf_descriptors = get_obj(train, 'surfdescriptors')
     else:
         for fname in images:
-            haralicks.append(compute_texture(fname))
-            lbps.append(compute_lbp(fname))
+            texture = compute_texture(fname)
+            binary_patt = compute_lbp(fname)
+            haralicks.append(texture)
+            lbps.append(binary_patt)
             if train:
                 label = fname.split('/')[2]
                 labels.append(label)
@@ -222,7 +224,7 @@ def get_features(train, images):
         for d in alldescriptors:
             c = km.predict(d)
             surf_descriptors.append(np.bincount(c, minlength=k))
-        
+
         surf_descriptors = to_array(surf_descriptors, dtype=float)
         haralicks = to_array(haralicks)
         lbps = to_array(lbps)
@@ -232,6 +234,8 @@ def get_features(train, images):
         save_obj(train, 'haralicks', haralicks)
         save_obj(train, 'lbps', lbps)
         save_obj(train, 'labels', labels)
+
+        
 
     return haralicks, lbps, labels, surf_descriptors
 
