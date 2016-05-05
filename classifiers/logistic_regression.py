@@ -3,7 +3,6 @@ import time
 import warnings
 
 from glob import glob
-from jug import TaskGenerator
 import pandas as pd
 import pickle
 import mahotas as mh
@@ -53,24 +52,22 @@ def compute_lbp(fname):
     im = mh.colors.rgb2grey(imc)
     return lbp(im, radius=8, points=6)
 
-@TaskGenerator
 def accuracy(featureType, features, labels, predict=False, test_features=[], test_images=[]):
     # We use logistic regression because it is very fast.
     # Feel free to experiment with other classifiers
-    # cv = cross_validation.LeaveOneOut(len(features))
-    cv = cross_validation.KFold(n=len(features), n_folds=5, shuffle=False,
+    # cv = cross_validation.LeaveOneOut(len(features)
+    cv = cross_validation.KFold(n=len(features), n_folds=10, shuffle=False,
                                random_state=None)
-    # classifier = [RandomForestClassifier(n_jobs=-1,
-    #                                   n_estimators=100
-    #                                   ) for i in classes]
-    classifier = Pipeline([
-                    ('preproc', StandardScaler()),
-                    ('classifier', LogisticRegression(solver="lbfgs", multi_class="multinomial"))
-                    ])
-    
+    classifier = [RandomForestClassifier(n_jobs=-1,n_estimators=100) for i in classes]
+    #classifier = Pipeline([
+    #                ('preproc', StandardScaler()),
+     #               ('classifier', LogisticRegression(solver="lbfgs", multi_class="multinomial"))
+      #              ])
+
     if type(classifier) is list:
+        print("Testing Random Forest classifer")
         scores = []
-        for i, clf in zip(classes, classifiers):
+        for i, clf in zip(classes, classifier):
             clf.fit(features, labels)
             score = cross_validation.cross_val_score(
                 clf, features, labels, cv=cv)
@@ -82,22 +79,21 @@ def accuracy(featureType, features, labels, predict=False, test_features=[], tes
             print("Predicting test images")
             results = []
             for index, clf in enumerate(classifier):
-                predictions = clf.predict_proba(X)[:,1]
+                predictions = clf.predict_proba(test_features)[:,1]
                 results.append(predictions)
             create_submission(featureType, results, test_images)
             
         return numpy.mean(scores)
     else:
+        print("Testing Logistic Regression classifer")
         classifier.fit(features, labels)
-        cv = cross_validation.LeaveOneOut(len(features))
         scores = cross_validation.cross_val_score(
             classifier, features, labels, cv=cv)
         if predict:
-            preds =  classifier.predict_proba(test_features)
+            preds = classifier.predict_proba(test_features)
             create_submission(featureType, preds, test_images)
         return scores.mean()
 
-@TaskGenerator
 def print_results(scores):
     with open('submissions/results.image.txt', 'a') as output:
         for k,v in scores:
@@ -132,11 +128,11 @@ def get_images(train):
     # Use glob to get all the train_images
     if train:
         for i in classes:
-            images += glob('{}/{}/{}/*.jpg'.format('imgs', 'train', i))
+            images += glob('{}/{}/{}/*.jpg'.format('imgs', 'train', i))[:10]
 
     # Use glob to get all the test_images
     else:
-        images += glob('{}/{}/*.jpg'.format('imgs', 'test'))
+        images += glob('{}/{}/*.jpg'.format('imgs', 'test'))[:5]
 
     images.sort()
     return images
@@ -218,24 +214,22 @@ def get_features(train, images):
                 len(concatenated)))
         concatenated = concatenated[::64]
         
-        k = 256
+        k = 1#256
         km = get_kmeans(k, train, concatenated)
         surf_descriptors = []
         for d in alldescriptors:
             c = km.predict(d)
             surf_descriptors.append(np.bincount(c, minlength=k))
 
-        surf_descriptors = to_array(surf_descriptors, dtype=float)
-        haralicks = to_array(haralicks)
-        lbps = to_array(lbps)
-        labels = to_array(labels)
-
         save_obj(train, 'surfdescriptors', surf_descriptors)
         save_obj(train, 'haralicks', haralicks)
         save_obj(train, 'lbps', lbps)
         save_obj(train, 'labels', labels)
 
-        
+    surf_descriptors = np.array(surf_descriptors, dtype=float)
+    haralicks = np.array(haralicks)
+    lbps = np.array(lbps)
+    labels = np.array(labels)
 
     return haralicks, lbps, labels, surf_descriptors
 
@@ -243,27 +237,25 @@ def get_features(train, images):
 train_images = get_images(True)
 test_images = get_images(False)
 
-to_array = TaskGenerator(np.array)
-hstack = TaskGenerator(np.hstack)
-
 haralicks, lbps, labels, surf_descriptors = get_features(True, train_images)
-# combined = hstack([lbps, haralicks])
-# combined_all = hstack([haralicks, lbps, surf_descriptors])
+combined = np.hstack([lbps, haralicks])
+combined_all = np.hstack([haralicks, lbps, surf_descriptors])
 
 test_haralicks, test_lbps, test_labels, test_surf = get_features(False, test_images)
-# test_combined = hstack([test_lbps, test_haralicks])
-# test_combined_all = hstack([test_haralicks, test_lbps, test_surf])
+test_combined = np.hstack([test_lbps, test_haralicks])
+test_combined_all = np.hstack([test_haralicks, test_lbps, test_surf])
+
 
 scores_base = accuracy('base', haralicks, labels, True, test_haralicks, test_images)
-# scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
-# scores_surf = accuracy('surf', surf_descriptors, labels, True, test_surf, test_images)
-# scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
-# scores_combined_all = accuracy('combined_all', combined_all, labels, True, test_combined_all, test_images)
+scores_lbps = accuracy('lbps', lbps, labels, True, test_lbps, test_images)
+scores_surf = accuracy('surf', surf_descriptors, labels, True, test_surf, test_images)
+scores_combined = accuracy('combined', combined, labels, True, test_combined, test_images)
+scores_combined_all = accuracy('combined_all', combined_all, labels, True, test_combined_all, test_images)
 
 print_results([
-         ('base', scores_base)
-        # ('lbps', scores_lbps),
-        # ('surf', scores_surf),
-        # ('combined' , scores_combined),
-        # ('combined_all' , scores_combined_all),
+        ('base', scores_base),
+        ('lbps', scores_lbps),
+        ('surf', scores_surf),
+        ('combined', scores_combined),
+        ('combined_all', scores_combined_all),
         ])
