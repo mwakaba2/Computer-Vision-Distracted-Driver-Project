@@ -63,8 +63,5 @@ target/
 
 
 # Data
-*.jugdata
-*.obj
 *.csv
 imgs/
-results.image.txt
