@@ -63,5 +63,6 @@ target/
 
 
 # Data
+*.obj
 *.csv
 imgs/
