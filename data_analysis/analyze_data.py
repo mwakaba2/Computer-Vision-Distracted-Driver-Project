@@ -25,7 +25,7 @@ def analyze_img_data():
 
 def analyze_content():
 	'''
-	States about the content of the images
+	Stats about the content of the images
 	'''
 	df = pd.read_csv('imgs/driver_imgs_list.csv')
 	columns = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9']
@@ -69,6 +69,6 @@ def get_random_examples():
 	return examples, examples2
 		
 if __name__ == '__main__':
-	#analyze_img_data()
-	# analyze_content()
-	print(get_random_examples())
+	analyze_img_data()
+	analyze_content()
+	#print(get_random_examples())

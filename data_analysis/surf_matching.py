@@ -68,7 +68,6 @@ for img, img2, label in zip(imgs1, imgs2, labels):
 
 	print '#selected matches:', len(sel_matches)
 
-	# #####################################
 	# visualization of the matches
 	h1, w1 = img1.shape[:2]
 	h2, w2 = img2.shape[:2]
@@ -78,7 +77,6 @@ for img, img2, label in zip(imgs1, imgs2, labels):
 
 	for m in sel_matches:
 	    # draw the keypoints
-	    # print m.queryIdx, m.trainIdx, m.distance
 	    color = tuple([sp.random.randint(0, 255) for _ in xrange(3)])
 	    cv2.line(view, (int(k1[m.queryIdx].pt[0]), int(k1[m.queryIdx].pt[1])) , (int(k2[m.trainIdx].pt[0] + w1), int(k2[m.trainIdx].pt[1])), color)
 
