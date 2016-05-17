@@ -1,0 +1,25 @@
+KFold 5
+Accuracy with Logistic Regression [base]: 5.0%
+Best parameters: {'C': 1000}
+Accuracy with Logistic Regression [lbps]: 4.1%
+Best parameters: {'C': 100}
+Accuracy with Logistic Regression [surf]: 19.6%
+Best parameters: {'C': 100}
+Accuracy with Logistic Regression [combined]: 10.4%
+Best parameters: {'C': 100}
+Accuracy with Logistic Regression [combined_all]: 25.0%
+Best parameters: {'C': 1000}
+
+
+KFold10
+Accuracy with Logistic Regression [base]: 9.1%
+Best parameters: {'C': 10}
+Accuracy with Logistic Regression [lbps]: 4.8%
+Best parameters: {'C': 10}
+Accuracy with Logistic Regression [surf]: 37.3%
+Best parameters: {'C': 1000}
+Accuracy with Logistic Regression [combined]: 14.4%
+Best parameters: {'C': 100}
+Accuracy with Logistic Regression [combined_all]: 47.9%
+Best parameters: {'C': 100}
+

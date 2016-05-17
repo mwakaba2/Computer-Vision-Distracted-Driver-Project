@@ -1,0 +1,23 @@
+KFold 5
+Accuracy with Random Forest [base]: 22.6%
+Best parameters: {'max_features': 'auto', 'n_estimators': 700}
+Accuracy with Random Forest [lbps]: 15.9%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
+Accuracy with Random Forest [surf]: 8.9%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
+Accuracy with Random Forest [combined]: 24.8%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
+Accuracy with Random Forest [combined_all]: 18.9%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
+
+KFold 10
+Accuracy with Random Forest [base]: 46.2%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
+Accuracy with Random Forest [lbps]: 30.5%
+Best parameters: {'max_features': 'log2', 'n_estimators': 700}
+Accuracy with Random Forest [surf]: 17.5%
+Best parameters: {'max_features': 'auto', 'n_estimators': 700}
+Accuracy with Random Forest [combined]: 50.2%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
+Accuracy with Random Forest [combined_all]: 37.0%
+Best parameters: {'max_features': 'sqrt', 'n_estimators': 700}
