@@ -17,6 +17,6 @@
   * c8: hair and makeup
   * c9: talking to passenger
 
-To ensure that this is a computer vision problem, we have removed metadata such as creation dates. The train and test data are split on the drivers, such that one driver can only appear on either train or test set. 
+Removed metadata such as creation dates. The train and test data are split on the drivers, such that one driver can only appear on either train or test set. 
 
-To discourage hand labeling, we have supplemented the test dataset with some images that are resized. These processed images are ignored and don't count towards your score.
+
