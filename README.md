@@ -2,6 +2,8 @@
 
 ### Goal: Predict the likelihood of what the driver is doing in each picture
 
+### [Final Report](https://github.com/mwakaba2/Computer-Vision-Capstone-Project/blob/master/CapstoneProject.pdf)
+
 ### Dataset:
 <a href= "https://www.kaggle.com/c/state-farm-distracted-driver-detection/data">State Farm Distracted Driver Detection Data</a>
 
@@ -20,7 +22,7 @@
 Removed metadata such as creation dates. The train and test data are split on the drivers, such that one driver can only appear on either train or test set. 
 
 ### Documentation
-Capstone_Project.pdf : final report of the capston project
+Capstone_Project.pdf : final report of the capstone project
 #### classifier/
   * classifier.py : run ``python classifier.py`` to create classifiers and save score and submission
 
